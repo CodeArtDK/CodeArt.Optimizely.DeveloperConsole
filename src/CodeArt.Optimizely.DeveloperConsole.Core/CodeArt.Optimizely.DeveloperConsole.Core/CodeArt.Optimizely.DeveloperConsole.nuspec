@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>CodeArt.Optimizely.DeveloperConsole</id>
+    <version>$version$</version>
+    <title>CodeArts Developer Console (EXPERIMENTAL)</title>
+    <authors>CodeArt</authors>
+    <owners>CodeArt</owners>
+    <projectUrl>https://github.com/CodeArtDK/CodeArt.Optimizely.DeveloperConsole</projectUrl>
+    <iconUrl>https://www.codeart.dk/favicon.ico</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>EXPERIMENTAL! A developer console, where developers can execute commands on their Episerver</description>
+    <tags>Episerver Developer Tools DeveloperTools Console cli</tags>
+  </metadata>
+  <files>
+    <file src="web.config.transform" target="content\" />
+    <file src="modules\_protected\CodeArt.Optimizely.DeveloperConsole\**\*" target="content\modules\_protected\CodeArt.Optimizely.DeveloperConsole\" />
+  </files>
+</package>

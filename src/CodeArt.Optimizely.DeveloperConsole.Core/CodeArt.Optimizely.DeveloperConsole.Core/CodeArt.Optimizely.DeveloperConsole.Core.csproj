@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+	<OutputType>Library</OutputType>
+	<AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Commands\ListNugetCommand.cs" />
+    <Compile Remove="Commands\UploadCommand.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Commands\ListNugetCommand.cs" />
+    <None Include="Commands\UploadCommand.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EPiServer.CMS" Version="12.10.0" />
+  </ItemGroup>
+
+</Project>

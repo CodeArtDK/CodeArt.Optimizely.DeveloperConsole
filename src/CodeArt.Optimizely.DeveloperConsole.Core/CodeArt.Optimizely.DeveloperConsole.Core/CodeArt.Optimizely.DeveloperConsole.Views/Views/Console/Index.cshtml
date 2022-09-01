@@ -1,0 +1,241 @@
+﻿@using EPiServer.Framework.Web.Resources
+@using EPiServer.Shell.Navigation
+@model CodeArt.Optimizely.DeveloperConsole.Models.ConsoleModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
+    <title>CodeArt Developer Console</title>
+    <link rel="shortcut icon" href="../../util/images/favicon.ico" type="image/x-icon" />
+    @ClientResources.RenderResources("admin", new[] { ClientResourceType.Style })
+
+    <style>
+
+        #command {
+            min-width: 90%;
+            border: none;
+            font-family: inherit;
+            background-color: #fbfbfb;
+            padding: 0 .5em;
+        }
+
+            #command:focus {
+                background: #fbfbfb;
+                color: #000;
+                outline: none;
+            }
+
+        .logText{
+            color:green;
+            margin-bottom:0px;
+            margin-top:0px;
+        }
+
+        .myText{
+            margin-bottom:0px;
+            margin-top:0px;
+        }
+
+        .mainConsole {
+            right: 20px;
+            left: 20px;
+            overflow-y: auto;
+            overflow-x:hidden;
+            
+            padding-top: 20px;
+            padding-left: 20px;
+            font-size: 14px;
+            font-family: 'Lucida Console', Arial;
+        }
+        .help{
+            background-color:lightblue;
+            padding: 10px 10px 10px 10px;
+            width:50%;
+            height:200px;
+            font-family: Myriad,Helvetica,Tahoma,Arial,clean,sans-serif;
+        }
+
+    </style>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+</head>
+<body class="Sleek">
+    @Html.AntiForgeryToken()
+    @Html.CreatePlatformNavigationMenu()
+    <div id="epi-application" @Html.ApplyPlatformNavigation()>
+        <div class="mainConsole">
+            <div id="log">
+
+            </div>
+
+
+            <div style="width:80%; display:table">
+                <label for="command" style="display:table-cell; width:1px; vertical-align:top">command&gt;</label>
+                <textarea id="command" style="display:table-cell;width:100%" rows="4"></textarea>
+                @*<input type="text" id="command" style="display:table-cell; width:100%" />*@
+            </div>
+            <div class="help">
+                <h3>Hint</h3>
+                <div id="helptext">Type <b>help</b> to get a list of all commands available.</div>
+            </div>
+        </div>
+
+    </div>
+    <script>
+        var commandlist=@Html.Raw(Model.Commands);
+        var cmdhistory = [];
+        var sessionid = null;
+        var cmdpoint = 0;
+        var suggestedcommand = null;
+
+
+       $("#command").on('keyup', function (e) {
+           if (e.keyCode == 13) {
+
+               var cmd = $('#command').val();
+               cmdhistory.push(cmd);
+               cmdpoint = cmdhistory.length;
+               $('#log').append('<p class="myText">command&gt;' + cmd + '</p>');
+               $('#command').val('');
+               var cmdobj = { command: cmd, Session: sessionid };
+               if (cmd.startsWith("upload")) {
+                   //TODO: expand with logic to get file and pass it in to controller
+               }
+               $.post('/api/DeveloperConsole/Web/RunCommand/', cmdobj,
+                   function (data, status, xhr) {
+                       //Handle file download
+                        var filename = "";
+                        var disposition = xhr.getResponseHeader('Content-Disposition');
+                        if (disposition && disposition.indexOf('attachment') !== -1) {
+                            var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                            var matches = filenameRegex.exec(disposition);
+                            if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+                        
+                        var type = xhr.getResponseHeader('Content-Type');
+                        var blob;
+                        if (typeof File === 'function') {
+                            try {
+                                blob = new File([data], filename, { type: type });
+                            } catch (e) { /* Edge */ }
+                        }
+                        if (typeof blob === 'undefined') {
+                            blob = new Blob([data], { type: type });
+                        }
+
+                            if (typeof window.navigator.msSaveBlob !== 'undefined') {
+                                // IE workaround for "HTML7007: One or more blob URLs were revoked by closing the blob for which they were created. These URLs will no longer resolve as the data backing the URL has been freed."
+                                window.navigator.msSaveBlob(blob, filename);
+                            } else {
+                                var URL = window.URL || window.webkitURL;
+                                var downloadUrl = URL.createObjectURL(blob);
+
+                                if (filename) {
+                                    // use HTML5 a[download] attribute to specify filename
+                                    var a = document.createElement("a");
+                                    // safari doesn't support this yet
+                                    if (typeof a.download === 'undefined') {
+                                        window.location.href = downloadUrl;
+                                    } else {
+                                        a.href = downloadUrl;
+                                        a.download = filename;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                    }
+                                } else {
+                                    window.location.href = downloadUrl;
+                                }
+
+                                setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
+                            }
+                        }
+                   });
+           } else if (e.keyCode == 38) {
+               //Arrow up - if val is empty fill in last typed command. Otherwise it may be navigating in autocomplete?
+               cmdpoint--;
+               $('#command').val(cmdhistory[cmdpoint]);
+               return false;
+           } else if (e.keyCode == 40) {
+               //Arrow down - command history navigation
+               cmdpoint++;
+               $('#command').val(cmdhistory[cmdpoint]);
+               return false;
+           } else if (e.keyCode == 190 && e.ctrlKey && suggestedcommand!=null) {
+               //Tab, if there is a suggestedcommand, use it now.
+               var cmd = $('#command').val();
+               var parts = cmd.split('|');
+               if (suggestedcommand.startsWith(parts[parts.length - 1].toLowerCase())){
+                   parts[parts.length - 1] = suggestedcommand;
+                   $('#command').val(parts.join("|"));
+               }
+               
+           } else {
+               //Any other key, evalute if help text should be updated.
+               UpdateHelp($('#command').val());
+           }
+       });
+       $(function () {
+           $('#command').focus();
+       });
+        var last = 0;
+
+        function UpdateHelp(command) {
+            var rt = 'Type <b>help</b> to get a list of all commands available.';
+            var parts = command.split('|');
+            var curr = parts[parts.length - 1];
+            if (curr != '' && curr != undefined) {
+                var p2 = curr.split(' ');
+                var currp = p2[0];
+                var possCommands = $.grep(commandlist, function (n, i) {
+                    return ((n.Keyword.startsWith(currp.toLowerCase()) ||(currp.length>2 && n.Keyword.includes(currp.toLowerCase()))) && (parts.length==1 || n.CanPipeIn));
+                });
+                if (possCommands.length == 1) {
+                    rt = '<h4>' + possCommands[0].Keyword + "</h4><p>" + possCommands[0].Description + "</p>";
+                    if (possCommands[0].Syntax != null) {
+                        rt += '<i>' + possCommands[0].Syntax + '</i><br/>';
+                    }
+                    if (possCommands[0].Parameters.length > 0) {
+                        rt += "<b>Parameters:</b><ul>" +
+                            $(possCommands[0].Parameters).map(function () { return "<li>-" + this + "</li>"; }).get().join('') + "</ul>";
+                    }
+                    suggestedcommand = possCommands[0].Keyword;
+                } else if (possCommands.length > 1) {
+                    rt = 'Possible commands: <ul>' + $(possCommands).map(function () { return '<li><b>' + this.Keyword + '</b> <i>' + this.Description + '</i></li>'; }).get().join('') + '</ul>';
+                    suggestedcommand = null;
+                } else {
+                    //No possible commands
+                    suggestedcommand = null;
+                }
+            }
+            $('#helptext').html(rt);
+        }
+
+       function RefreshLog() {
+           $.getJSON('/api/DeveloperConsole/Web/FetchLog/', { LastLogNo: last, Session:sessionid }, function (data) {
+               last = data.LastNo;
+               sessionid = data.Session;
+               $.each(data.LogItems, function (idx, val) {
+                   $('#log').append('<p class="logText">'+val + '</p>');
+               })
+               //LogItems[Time,Sender,Text]
+               if (data.LogItems.length > 0) {
+                   $('html, body').animate({
+                       scrollTop: $("#command").offset().top
+                   }, 1000);
+               }
+               window.setTimeout(RefreshLog, 1000);
+           });
+       }
+       RefreshLog();
+    </script>
+    @ClientResources.RenderResources("admin", new[] { ClientResourceType.Script })
+
+</body>
+</html>
