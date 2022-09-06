@@ -51,8 +51,8 @@ namespace CodeArt.Optimizely.DeveloperConsole.Models
 
         public T CreateNew<T>() where T:IConsoleCommand
         {
-            return (T)ServiceLocator.Current.GetInstance(CommandType);
-            //return (T) Activator.CreateInstance(CommandType);
+            //return (T)ServiceLocator.Current.GetInstance(CommandType);
+            return (T) Activator.CreateInstance(CommandType);
         }
     }
 }

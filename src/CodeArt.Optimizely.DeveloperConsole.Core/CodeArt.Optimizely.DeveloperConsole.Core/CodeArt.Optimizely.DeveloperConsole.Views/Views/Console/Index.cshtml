@@ -95,6 +95,7 @@
         var sessionid = null;
         var cmdpoint = 0;
         var suggestedcommand = null;
+        var baseurl = '@EPiServer.Shell.Paths.ToResource(GetType(), "Console")';
 
 
        $("#command").on('keyup', function (e) {
@@ -105,11 +106,11 @@
                cmdpoint = cmdhistory.length;
                $('#log').append('<p class="myText">command&gt;' + cmd + '</p>');
                $('#command').val('');
-               var cmdobj = { command: cmd, Session: sessionid };
+               var cmdobj = { command: cmd, session: sessionid };
                if (cmd.startsWith("upload")) {
                    //TODO: expand with logic to get file and pass it in to controller
                }
-               $.post('/api/DeveloperConsole/Web/RunCommand/', cmdobj,
+               $.post(baseurl+'/RunCommand/', cmdobj,
                    function (data, status, xhr) {
                        //Handle file download
                         var filename = "";
@@ -218,14 +219,14 @@
         }
 
        function RefreshLog() {
-           $.getJSON('/api/DeveloperConsole/Web/FetchLog/', { LastLogNo: last, Session:sessionid }, function (data) {
-               last = data.LastNo;
-               sessionid = data.Session;
-               $.each(data.LogItems, function (idx, val) {
+           $.getJSON(baseurl+'/FetchLog/', { LastLogNo: last, session:sessionid }, function (data) {
+               last = data.lastNo;
+               sessionid = data.session;
+               $.each(data.logItems, function (idx, val) {
                    $('#log').append('<p class="logText">'+val + '</p>');
                })
                //LogItems[Time,Sender,Text]
-               if (data.LogItems.length > 0) {
+               if (data.logItems.length > 0) {
                    $('html, body').animate({
                        scrollTop: $("#command").offset().top
                    }, 1000);
